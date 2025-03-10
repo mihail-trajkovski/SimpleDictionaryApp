@@ -130,8 +130,8 @@ fun SimpleDictionaryApp(context: ComponentActivity) {
                     val file = File(context.filesDir, "dictionary.txt")
                     file.writeText(dictionary.entries.joinToString("\n") { "${it.key}=${it.value}" })
 
-                    searchQuery = ""
-                    searchResults = emptyList()
+                    searchQuery = "" // Clear input field
+                    searchResults = emptyList() // Clear search results
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
