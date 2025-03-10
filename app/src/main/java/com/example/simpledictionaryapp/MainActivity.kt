@@ -31,16 +31,13 @@ fun SimpleDictionaryApp(context: ComponentActivity) {
     var searchResults by remember { mutableStateOf(listOf<String>()) }
     val dictionary = remember { mutableStateMapOf<String, String>() }
 
-    // Load the dictionary from the raw resource
     LaunchedEffect(Unit) {
         val file = File(context.filesDir, "dictionary.txt")
         if (!file.exists()) {
-            // If the file doesn't exist, create it and add initial entries
             file.createNewFile()
             file.writeText("здраво=hello\nкога=when\nавтомобил=car\n")
         }
 
-        // Load the dictionary from the file
         dictionary.clear()
         file.forEachLine {
             val parts = it.split("=")
@@ -48,6 +45,20 @@ fun SimpleDictionaryApp(context: ComponentActivity) {
                 dictionary[parts[0].trim().lowercase()] = parts[1].trim().lowercase()
             }
         }
+    }
+
+    fun updateSearchResults() {
+        searchResults = if (searchQuery.isNotEmpty()) {
+            val query = searchQuery.trim().lowercase()
+            when {
+                dictionary.containsKey(query) -> listOf("$query → ${dictionary[query]}")
+                dictionary.containsValue(query) -> {
+                    val result = dictionary.entries.find { it.value == query }?.key
+                    listOf("$result → $query")
+                }
+                else -> listOf("Word not found.")
+            }
+        } else emptyList()
     }
 
     Column(
@@ -63,7 +74,6 @@ fun SimpleDictionaryApp(context: ComponentActivity) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Input fields for Macedonian and English words
         OutlinedTextField(
             value = macedonianWord,
             onValueChange = { macedonianWord = it },
@@ -78,7 +88,6 @@ fun SimpleDictionaryApp(context: ComponentActivity) {
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         )
 
-        // Save button to add new words to the dictionary
         Button(
             onClick = {
                 if (macedonianWord.isNotEmpty() && englishWord.isNotEmpty()) {
@@ -87,19 +96,15 @@ fun SimpleDictionaryApp(context: ComponentActivity) {
                     file.appendText("${macedonianWord.lowercase()}=${englishWord.lowercase()}\n")
                     macedonianWord = ""
                     englishWord = ""
+                    updateSearchResults()
                 }
             },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF00796B)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00796B)),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
         ) {
             Text("Save", color = Color.White)
         }
 
-        // Search field
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -107,62 +112,36 @@ fun SimpleDictionaryApp(context: ComponentActivity) {
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
         )
 
-        // Search button
         Button(
-            onClick = {
-                searchResults = if (searchQuery.isNotEmpty()) {
-                    val query = searchQuery.trim().lowercase()
-                    if (dictionary.containsKey(query)) {
-                        listOf("$query → ${dictionary[query]}")
-                    } else if (dictionary.containsValue(query)) {
-                        val result = dictionary.entries.find { it.value == query }?.key
-                        listOf("$result → $query")
-                    } else {
-                        listOf("Word not found.")
-                    }
-                } else {
-                    emptyList()
-                }
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF00796B)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
+            onClick = { updateSearchResults() },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00796B)),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
             Text("Search", color = Color.White)
         }
 
-        // Remove button
         Button(
             onClick = {
-                if (searchQuery.isNotEmpty()) {
-                    val query = searchQuery.trim().lowercase()
-                    if (dictionary.containsKey(query)) {
-                        dictionary.remove(query)
-                        val file = File(context.filesDir, "dictionary.txt")
-                        file.writeText(dictionary.entries.joinToString("\n") { "${it.key}=${it.value}" })
-                        searchQuery = ""
-                        searchResults = emptyList()
-                    }
+                val query = searchQuery.trim().lowercase()
+                if (query.isNotEmpty() && dictionary.containsKey(query)) {
+                    dictionary.remove(query)
+
+                    // Save the updated dictionary back to file
+                    val file = File(context.filesDir, "dictionary.txt")
+                    file.writeText(dictionary.entries.joinToString("\n") { "${it.key}=${it.value}" })
+
+                    searchQuery = ""
+                    searchResults = emptyList()
                 }
             },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFD32F2F) // Red color for the remove button
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
             Text("Remove Word", color = Color.White)
         }
 
-        // Display search results
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
         ) {
             items(searchResults) { result ->
                 Text(
